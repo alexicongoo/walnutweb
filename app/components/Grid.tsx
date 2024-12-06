@@ -114,7 +114,6 @@ const Grid: React.FC = () => {
         <div className="flex flex-col items-center">
             {!hasGameStarted ? (
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Welcome to Speech Webgrid!</h1>
                     <button
                         onClick={startGame}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
@@ -124,14 +123,13 @@ const Grid: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <h1 className="text-2xl font-bold mb-4">Speech Webgrid</h1>
-                    <div className="text-lg font-semibold mb-4">
+                    <div className="text-lg font-semibold mb-4 text-black">
                         Time Remaining: {timeRemaining}s
                     </div>
-                    <div className="text-lg font-semibold mb-4">Score: {score}</div>
-                    <div className="text-lg font-semibold mb-4">BPS: {bps}</div>
+                    <div className="text-lg font-semibold mb-4 text-black">Score: {score}</div>
+                    <div className="text-lg font-semibold mb-4 text-black">BPS: {bps}</div>
                     {isGameOver ? (
-                        <div className="text-center text-xl font-bold text-red-500">
+                        <div className="text-center text-xl font-bold text-black">
                             Game Over! Final Score: {score}
                             <br />
                             Total Bits: {totalBits}
