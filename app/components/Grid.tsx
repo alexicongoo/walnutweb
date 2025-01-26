@@ -8,6 +8,7 @@ const Grid: React.FC = () => {
     type Position = { row: number; col: number };
 
     const [userPosition, setUserPosition] = useState<Position>({ row: 0, col: 0 });
+    const [startingPosition, setStartingPosition] = useState<Position>({ row: 0, col: 0 });
     const [goalPosition, setGoalPosition] = useState<Position>({
         row: Math.floor(Math.random() * gridSize),
         col: Math.floor(Math.random() * gridSize),
@@ -15,11 +16,17 @@ const Grid: React.FC = () => {
     const [score, setScore] = useState<number>(0);
     const [timeRemaining, setTimeRemaining] = useState<number>(40);
     const [isGameOver, setIsGameOver] = useState<boolean>(false);
+
     const [totalBits, setTotalBits] = useState<number>(0);
     const [hasGameStarted, setHasGameStarted] = useState<boolean>(false);
 
+    // We'll store the real time (in ms) when the game starts
+    const [startTime, setStartTime] = useState<number>(0);
+
     const startGame = () => {
-        setUserPosition({ row: 0, col: 0 });
+        const initialPosition = { row: 0, col: 0 };
+        setUserPosition(initialPosition);
+        setStartingPosition(initialPosition);
         setGoalPosition({
             row: Math.floor(Math.random() * gridSize),
             col: Math.floor(Math.random() * gridSize),
@@ -29,6 +36,9 @@ const Grid: React.FC = () => {
         setTotalBits(0);
         setIsGameOver(false);
         setHasGameStarted(true);
+
+        // Store the real time stamp (ms)
+        setStartTime(Date.now());
     };
 
     useEffect(() => {
@@ -73,10 +83,7 @@ const Grid: React.FC = () => {
                         return prev;
                 }
 
-                if (newPosition !== prev) {
-                    setTotalBits((prevBits) => prevBits + 2);
-                }
-
+                // We do NOT increment bits on move — only on hitting the goal
                 return newPosition;
             });
         };
@@ -88,16 +95,26 @@ const Grid: React.FC = () => {
     useEffect(() => {
         if (!hasGameStarted || isGameOver) return;
 
-        if (
-            userPosition.row === goalPosition.row &&
-            userPosition.col === goalPosition.col
-        ) {
+        // Only increment bits on target hit
+        if (userPosition.row === goalPosition.row && userPosition.col === goalPosition.col) {
             setScore((prevScore) => prevScore + 1);
-            setTotalBits((prevBits) => prevBits + 2);
-            setGoalPosition({
+
+            // Calculate bits based on the starting position to goal
+            const stepsFromStart = Math.abs(startingPosition.row - goalPosition.row) + 
+                                 Math.abs(startingPosition.col - goalPosition.col);
+            const bitsToAdd = stepsFromStart * 2;
+            
+            // Generate new goal position
+            const newGoalPosition = {
                 row: Math.floor(Math.random() * gridSize),
                 col: Math.floor(Math.random() * gridSize),
-            });
+            };
+
+            // Update total bits and set new goal
+            setTotalBits(prevBits => prevBits + bitsToAdd);
+            setGoalPosition(newGoalPosition);
+            // Update starting position for next goal
+            setStartingPosition(userPosition);
         }
     }, [userPosition, goalPosition, hasGameStarted, isGameOver]);
 
@@ -106,15 +123,20 @@ const Grid: React.FC = () => {
         Array.from({ length: gridSize }, (_, col) => ({ row, col }))
     );
 
-    // Calculate Bits Per Second
-    const totalTimeElapsed = (40 - timeRemaining) || 1;
-    const bps = (totalBits / totalTimeElapsed).toFixed(2);
+    // Calculate Bits Per Second using real elapsed time
+    let bps = 0;
+    if (hasGameStarted) {
+        const now = Date.now();
+        const elapsedSeconds = (now - startTime) / 1000;
+        const safeElapsed = elapsedSeconds > 0 ? elapsedSeconds : 1;
+        bps = totalBits / safeElapsed;
+    }
 
     return (
         <div className="flex flex-col items-center">
             {!hasGameStarted ? (
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-4">Welcome to Speech Webgrid!</h1>
+                    <h1 className="text-2xl font-bold mb-5 text-black">Welcome to Speech Webgrid!</h1>
                     <button
                         onClick={startGame}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
@@ -124,19 +146,11 @@ const Grid: React.FC = () => {
                 </div>
             ) : (
                 <>
-                    <h1 className="text-2xl font-bold mb-4">Speech Webgrid</h1>
-                    <div className="text-lg font-semibold mb-4">
-                        Time Remaining: {timeRemaining}s
-                    </div>
-                    <div className="text-lg font-semibold mb-4">Score: {score}</div>
-                    <div className="text-lg font-semibold mb-4">BPS: {bps}</div>
+                    <div className="text-lg font-semibold mb-4 text-black">Time Remaining: {timeRemaining}s</div>
+                    <div className="text-lg font-semibold mb-4 text-black">Total bits communicated: {totalBits}</div>
+                    <div className="text-lg font-semibold mb-4 text-black">BPS: {bps.toFixed(2)}</div>
                     {isGameOver ? (
-                        <div className="text-center text-xl font-bold text-red-500">
-                            Game Over! Final Score: {score}
-                            <br />
-                            Total Bits: {totalBits}
-                            <br />
-                            Final BPS: {bps}
+                        <div className="text-center text-lg font-bold text-black">
                             <button
                                 onClick={startGame}
                                 className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
@@ -145,7 +159,7 @@ const Grid: React.FC = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-10 gap-1 bg-gray-100 p-4 border border-gray-300 w-max">
+                        <div className="grid grid-cols-10 gap-1 bg-gray-900 p-4 border border-gray-500 w-max">
                             {grid.flat().map((cell) => {
                                 const isUser =
                                     cell.row === userPosition.row &&
@@ -178,8 +192,3 @@ const Grid: React.FC = () => {
 };
 
 export default Grid;
-
-
-
-
-
