@@ -1,42 +1,54 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { AssemblyAI } from 'assemblyai';
+import { AssemblyAI } from 'assemblyai'
+import { NextRequest, NextResponse } from 'next/server'
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed. Use POST.' });
-  }
+// Initialize AssemblyAI client
+const client = new AssemblyAI({
+  apiKey: process.env.ASSEMBLY_AI_API_KEY || ''
+})
 
+export async function POST(request: NextRequest) {
   try {
-    // Grab the 'fileUrl' from the request body
-    const { fileUrl } = req.body;
-    if (!fileUrl) {
-      return res.status(400).json({ error: 'fileUrl is required' });
+    // Check if the request has the correct content type
+    const contentType = request.headers.get('content-type')
+    if (!contentType?.includes('audio/')) {
+      return NextResponse.json(
+        { error: 'Request must include audio data' },
+        { status: 400 }
+      )
     }
 
-    // Create a new AssemblyAI client with your API key
-    const client = new AssemblyAI({
-      apiKey: process.env.ASSEMBLYAI_API_KEY || '',
-    });
+    // Get the audio data as ArrayBuffer
+    const audioData = await request.arrayBuffer()
 
-    // Here is the object that tells AssemblyAI which audio to transcribe
-    const data = {
-      audio: fileUrl, // You can also pass local file path if your server can access it
-    };
+    // Upload the audio file first
+    const uploadUrl = await client.files.upload(Buffer.from(audioData))
 
-    // Use the client to transcribe
-    const transcript = await client.transcripts.transcribe(data);
-    // transcript.text will contain the transcribed text
+    // Create and wait for transcription
+    const transcript = await client.transcripts.transcribe({
+      audio_url: uploadUrl,
+      language_code: 'en', // You can make this configurable
+    })
 
-    return res.status(200).json({
+    // Return the transcription result
+    return NextResponse.json({
       text: transcript.text,
-      transcript: transcript, // If you want to see the full object
-    });
-  } catch (error: any) {
-    console.error('Transcription error:', error);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+      confidence: transcript.confidence,
+      language: transcript.language_code,
+    })
+
+  } catch (error) {
+    console.error('Transcription error:', error)
+    return NextResponse.json(
+      { error: 'Failed to transcribe audio' },
+      { status: 500 }
+    )
   }
+}
+
+// Configure the API route to handle larger files
+export const config = {
+  api: {
+    bodyParser: false,
+    responseLimit: false,
+  },
 }
