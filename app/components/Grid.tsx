@@ -136,7 +136,7 @@ const Grid: React.FC = () => {
         <div className="flex flex-col items-center">
             {!hasGameStarted ? (
                 <div className="text-center">
-                    <h1 className="text-2xl font-bold mb-5 text-black">Welcome to Speech Webgrid!</h1>
+                    <h1 className="text-2xl font-bold mb-5 text-black">Welcome to WalnutWeb!</h1>
                     <button
                         onClick={startGame}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
